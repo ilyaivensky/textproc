@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <exception>
 
 using namespace std;
 
@@ -28,10 +29,10 @@ Decomposer::Decomposer(const string & unigram_file_path) : max_len(0)
 {
 	ifstream ifs;
 
-	// enable exception if failed opening file
-	ifs.exceptions(ifstream::failbit);
-
 	ifs.open(unigram_file_path, std::ios::in);
+
+	if (!ifs.is_open())
+		throw runtime_error("File cannot be open");
 
 	while (!ifs.eof())
 	{
