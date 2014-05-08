@@ -22,6 +22,7 @@ struct Decomposition
 	static const unsigned INVALID = -1;
 
 	bool isValid() const { return score != INVALID; }
+	size_t size() const { return subtokens.empty() ? INVALID : subtokens.size(); }
 
 	std::vector<std::string>::const_iterator begin() const {
 		return subtokens.begin();
@@ -61,6 +62,9 @@ private:
 
 	// Dictionary to store scores
 	std::unordered_map<std::string, unsigned> unigram_scores;
+
+	// Maximal length of prefix in the dictionary
+	size_t max_len;
 };
 
 #endif /* DECOMPOSER_H_ */

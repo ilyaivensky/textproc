@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -23,7 +24,7 @@ std::ostream & operator<<(std::ostream & os, const Decomposition & d)
 	return os;
 }
 
-Decomposer::Decomposer(const string & unigram_file_path)
+Decomposer::Decomposer(const string & unigram_file_path) : max_len(0)
 {
 	ifstream ifs;
 
@@ -44,6 +45,7 @@ Decomposer::Decomposer(const string & unigram_file_path)
 		ss >> unigram;
 
 		unigram_scores[unigram] = score;
+		max_len = max(unigram.length(), max_len);
 	}
 
 	ifs.close();
@@ -68,7 +70,10 @@ void match_suffix_decomposition(
 
 	unsigned total_score = suffix_decomposition.score + prefix_score;
 
-	if (total_score < token_decomposition.score)
+	if (!token_decomposition.isValid() || // this is the first valid decomposition we have seen so far
+			total_score < token_decomposition.score || // this decomposition has the lowest score
+			(total_score == token_decomposition.score && // this decomposition has the same score, but less subtokens
+					suffix_decomposition.size() + 1 < token_decomposition.size()))
 	{
 		// It is the best known decomposition so far
 
@@ -84,6 +89,7 @@ void match_suffix_decomposition(
 		// update the score
 		token_decomposition.score = total_score;
 	}
+
 }
 } // namespace
 
@@ -107,7 +113,9 @@ Decomposition Decomposer::_decompose(
 		return token_decomposition;
 
 	// Look for valid decompositions in the form <prefix><suffix>
-	for (auto itPrefixEnd = next(token.begin()), itTokenEnd = token.end(); itPrefixEnd != itTokenEnd; ++itPrefixEnd)
+	for (auto itPrefixEnd = next(token.begin()),
+			itTokenEnd = (token.end() - token.begin() > max_len ? token.begin() + max_len : token.end());
+			itPrefixEnd != itTokenEnd; ++itPrefixEnd)
 	{
 		// Find the score for the prefix
 		auto itFound = unigram_scores.find(string(token.begin(), itPrefixEnd));
@@ -136,11 +144,12 @@ Decomposition Decomposer::_decompose(
 	}
 
 	auto itFound = unigram_scores.find(token);
-	if (itFound != unigram_scores.end() && itFound->second < token_decomposition.score)
+	if (itFound != unigram_scores.end() && itFound->second <= token_decomposition.score)
 	{
 		// We have reached the end of the token and have found a valid score at the end of iteration.
 		// That means the token without any decomposition is a valid token
-		// More of this, the score without decomposition is better than the score for any decomposition
+		// More of this, the score without decomposition is better than the score for any decomposition,
+		// or it has the same score, but it has the minimal numbers of subtokens (which is 1 because there is no decomposition)
 
 		token_decomposition.score = itFound->second;
 		token_decomposition.subtokens.clear();
