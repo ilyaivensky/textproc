@@ -10,7 +10,6 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <exception>
 
 using namespace std;
 
